@@ -1,0 +1,35 @@
+services:
+  fastapi-template-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: fastapi-template-dev
+    ports:
+      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
+    volumes:
+      - ./:/usr/fastapi-template # Monta el código local para desarrollo con recarga en caliente
+      - deps_fastapi_template:/usr/fastapi-template/.venv
+    networks:
+      - fastapi_template_network
+
+  fastapi-template-prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: fastapi-template-prod
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - fastapi_template_network
+
+networks:
+  fastapi_template_network:
+    driver: bridge
+
+volumes:
+  deps_fastapi_template:
+    name: deps_fastapi_template

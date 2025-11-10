@@ -1,0 +1,45 @@
+FROM mcr.microsoft.com/windows/servercore:ltsc2019 AS builder-windows
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# === INSTALAR PYTHON ===
+RUN Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe' -OutFile 'C:\python-installer.exe'; \
+    Start-Process -FilePath 'C:\python-installer.exe' -ArgumentList '/quiet', 'InstallAllUsers=1', 'PrependPath=1', 'Include_pip=1' -Wait; \
+    Remove-Item 'C:\python-installer.exe' -Force; \
+    $env:PATH = 'C:\Program Files\Python312;C:\Program Files\Python312\Scripts;' + $env:PATH; \
+    if (!(Test-Path 'C:\Program Files\Python312\python.exe')) { Write-Error 'Python not found'; exit 1 }; \
+    python --version
+
+# === INSTALAR VC++ RUNTIME ===
+RUN Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile 'C:\vc_redist.x64.exe'; \
+    Start-Process -FilePath 'C:\vc_redist.x64.exe' -ArgumentList '/quiet', '/norestart' -Wait; \
+    Remove-Item 'C:\vc_redist.x64.exe' -Force
+
+# === CAMBIAR A CMD PARA EVITAR PROBLEMAS CON POWERSHELL ===
+SHELL ["cmd", "/S", "/C"]
+
+# === CONFIGURAR ENTORNO GLOBAL ===
+ENV PATH="C:\Program Files\Python312;C:\Program Files\Python312\Scripts;C:\Windows\System32"
+
+# === TRABAJO ===
+WORKDIR /usr/fastapi-template
+
+# === COPIAR ARCHIVOS ===
+COPY pyproject.toml poetry.lock ./
+COPY . .
+
+# === INSTALAR DEPENDENCIAS (usando CMD) ===
+RUN python -m pip install --upgrade pip --no-cache-dir && \
+    python -m pip install poetry --no-cache-dir && \
+    poetry self add poetry-plugin-export && \
+    poetry export --without-hashes --without dev -f requirements.txt -o requirements.txt && \
+    python -m pip install --no-cache-dir -r requirements.txt pyinstaller
+
+# === CONSTRUIR EJECUTABLE ===
+#SHELL ["/bin/bash", "-c"]
+#RUN set -o pipefail && ./build_windows.bat 2>&1 | tee /usr/fastapi-template/build/windows/fastapi-template/build.log
+RUN build_windows.bat
+
+# === ETAPA FINAL ===
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2019 AS exporter-windows
+COPY --from=builder-windows /usr/fastapi-template/build/windows/fastapi-template /fastapi-template

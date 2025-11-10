@@ -1,0 +1,39 @@
+{
+  "name": "Confidential GPT Backend",
+  "dockerComposeFile": [
+    "../docker-compose.yml"
+  ],
+  "service": "confidential-gpt-backend-dev",  // Attach to this service
+  "runServices": ["confidential-gpt-backend-dev"],
+  "workspaceFolder": "/usr/confidential-gpt/",
+  "overrideCommand": false,
+  "shutdownAction": "stopCompose",  // Stops the full stack if you shut down this Dev Container
+  "remoteUser": "dev",  // Or whatever user your backend Dockerfile uses (e.g., if it's Python/FastAPI, often root or a custom user)
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Add backend-specific extensions, e.g., for Python:
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "ms-python.debugpy",
+        "ms-python.vscode-python-envs",
+        "eamodio.gitlens",
+        "codeium.codeium",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode-remote.remote-containers"
+        // Add more as needed for your backend stack
+      ],
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "python.languageServer": "Pylance",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "python.defaultInterpreterPath": "/usr/confidential-gpt/.venv/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestPath": "/usr/confidential-gpt/.venv/bin/pytest"
+
+      }
+    }
+  }
+}

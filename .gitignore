@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+.python-version
+
+# VS Code
+.vscode/
+.history/
+
+# Data
+data/
+data/databases/*
+!data/databases/.gitkeep
+data/documents/*
+!data/documents/.gitkeep
+data/vectors/*
+!data/vectors/.gitkeep
+data/graphs/*
+!data/graphs/.gitkeep
+data/models/*
+backend/data/models/*
+!data/models/.gitkeep
+data/logs/*
+!data/logs/.gitkeep
+*.db
+*.db-shm
+*.db-wal
+
+# Other
+.DS_Store
+Thumbs.db
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.patch
+nul
+
+# Logs
+logs/
+*.log
+*.log.*
