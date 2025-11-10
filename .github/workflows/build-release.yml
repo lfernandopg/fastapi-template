@@ -1,0 +1,108 @@
+name: Crear Release y Binarios
+
+# 1. DISPARADOR: Se ejecuta solo cuando haces 'push' a un tag que empieza con 'v' (ej. v1.0, v1.2.3)
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # ===============================================
+  # JOB 1: Compilar para Linux (usando tu Makefile)
+  # ===============================================
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Descargar el código
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 3. Compilar ejecutable de Linux
+        # Este comando usa tu Makefile, que a su vez usa tu Dockerfile y build_unix.sh
+        run: make export-linux
+
+      - name: 4. Empaquetar artefacto de Linux
+        run: |
+          # El nombre 'fastapi-template' se obtiene dinámicamente de tu .spec
+          cd build/linux/fastapi-template
+          zip -r ../fastapi-template-linux-amd64.zip .
+          
+      - name: 5. Subir artefacto de Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastapi-template-linux-amd64
+          path: build/linux/fastapi-template-linux-amd64.zip
+
+  # =======================================================
+  # JOB 2: Compilar para Windows (usando build_windows.bat)
+  # =======================================================
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: 1. Descargar el código
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Python 3.12
+        # Usa la versión de Python de tu pyproject.toml
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 3. Instalar Poetry
+        run: pip install poetry
+
+      - name: 4. Instalar dependencias (incl. PyInstaller)
+        # Instala dependencias de desarrollo (dev) donde está pyinstaller
+        run: poetry install --with dev
+
+      - name: 5. Agregar venv de Poetry al PATH
+        # Esto es crucial para que el script .bat encuentre 'pyinstaller'
+        run: echo ((poetry env info -p) + "\Scripts") | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: 6. Compilar ejecutable de Windows
+        # Ejecuta tu script .bat
+        run: .\build_windows.bat
+
+      - name: 7. Empaquetar artefacto de Windows
+        # El nombre 'fastapi-template' se obtiene dinámicamente de tu .spec
+        run: Compress-Archive -Path build/windows/fastapi-template/* -DestinationPath build/windows/fastapi-template-windows-amd64.zip
+        shell: pwsh
+
+      - name: 8. Subir artefacto de Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastapi-template-windows-amd64
+          path: build/windows/fastapi-template-windows-amd64.zip
+
+  # =================================================
+  # JOB 3: Crear el Release en GitHub
+  # =================================================
+  create-release:
+    # Se ejecuta solo si AMBOS jobs de compilación terminan con éxito
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    
+    # Permisos necesarios para escribir en el repositorio (crear el release)
+    permissions:
+      contents: write
+      
+    steps:
+      - name: 1. Descargar todos los artefactos de compilación
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/ # Los descarga todos a una carpeta 'artifacts'
+
+      - name: 2. Crear Release en GitHub y subir binarios
+        uses: softprops/action-gh-release@v2
+        with:
+          # El nombre del release será "Release v1.X.X"
+          name: Release ${{ github.ref_name }}
+          # El tag usado para el push (ej. 'v1.0.0')
+          tag_name: ${{ github.ref_name }}
+          # Genera automáticamente las notas del release
+          generate_release_notes: true
+          # Sube todos los archivos .zip encontrados en las carpetas de artefactos
+          files: artifacts/*/*.zip
