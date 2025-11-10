@@ -19,7 +19,7 @@ app.add_middleware(
 @app.get("/")
 async def read_root():
     # 3. Retorna una respuesta JSON
-    return {"message": "Hello, FastAPI!"}
+    return {"message": "Hello from FastAPI!"}
 
 if __name__ == "__main__":
 
